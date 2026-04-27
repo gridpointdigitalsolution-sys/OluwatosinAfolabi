@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import WordSelector from "@/components/WordSelector";
 import QuoteCard from "@/components/QuoteCard";
@@ -11,17 +11,6 @@ import { getSavedQuotes } from "@/lib/storage";
 import type { GeneratedQuote, ApiResponse } from "@/lib/types";
 import { Loader2, Sparkles } from "lucide-react";
 
-function scrollToQuote() {
-  // Only scroll on mobile (below md breakpoint = 768px)
-  if (typeof window !== "undefined" && window.innerWidth < 768) {
-    setTimeout(() => {
-      document
-        .getElementById("quote-display")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-  }
-}
-
 function PageInner() {
   const { showToast } = useToast();
 
@@ -31,15 +20,25 @@ function PageInner() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [savedRefreshKey, setSavedRefreshKey] = useState(0);
   const [savedCount, setSavedCount] = useState(() => getSavedQuotes().length);
+  const shouldScrollRef = useRef(false);
+
+  // Scroll to quote panel on mobile after React re-renders the loading state
+  useEffect(() => {
+    if (!shouldScrollRef.current) return;
+    shouldScrollRef.current = false;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return;
+    const el = document.getElementById("quote-display");
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 12;
+    window.scrollTo({ top, behavior: "smooth" });
+  });
 
   const generateQuote = useCallback(
     async (word: string) => {
       setSelectedWord(word);
       setIsLoading(true);
       setCurrentQuote(null);
-
-      // Scroll immediately on mobile so user sees the loading spinner
-      scrollToQuote();
+      shouldScrollRef.current = true; // triggers scroll in the next useEffect pass
 
       try {
         const res = await fetch("/api/generate-quote", {
