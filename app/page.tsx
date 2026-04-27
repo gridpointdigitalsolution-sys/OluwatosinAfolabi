@@ -44,15 +44,25 @@ function PageInner() {
       setIsLoading(true);
       setCurrentQuote(null);
 
-      // Scroll to loading spinner on mobile right after state update paints
-      scrollToQuotePanel();
-
       try {
-        const res = await fetch("/api/generate-quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ theme: word }),
-        });
+        // Scroll on mobile — inside try so any error is safely caught
+        scrollToQuotePanel();
+
+        // Abort if Groq takes longer than 20 seconds
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        let res: Response;
+        try {
+          res = await fetch("/api/generate-quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ theme: word }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
 
         const data = (await res.json()) as ApiResponse;
 
@@ -66,8 +76,11 @@ function PageInner() {
 
         setCurrentQuote(data.data);
         showToast("Your quote is ready ✦", "success");
-      } catch {
-        showToast("Network error — check your connection", "error");
+      } catch (err) {
+        const msg = err instanceof Error && err.name === "AbortError"
+          ? "Taking too long — please try again"
+          : "Network error — check your connection";
+        showToast(msg, "error");
       } finally {
         setIsLoading(false);
       }
