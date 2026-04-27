@@ -36,24 +36,18 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
       link.href = dataUrl;
       link.download = `pastor-quote-${quote.theme}-${Date.now()}.jpg`;
       link.click();
-      showToast("Downloaded successfully", "success");
+      showToast("Downloaded successfully ✦", "success");
     } catch {
       showToast("Download failed. Please try again.", "error");
     }
   }
 
   async function handleShare() {
-    const shareText = `“${quote.quote}” — ${quote.verseReference}`;
+    const shareText = `"${quote.quote}"\n\n${quote.verseReference}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({
-          title: "Pastor’s Daily Quote",
-          text: shareText,
-          url: window.location.href,
-        });
-      } catch {
-        // user cancelled — not an error
-      }
+        await navigator.share({ title: "Pastor's Daily Quote", text: shareText, url: window.location.href });
+      } catch { /* user cancelled */ }
     } else {
       try {
         await navigator.clipboard.writeText(shareText);
@@ -65,10 +59,10 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
   }
 
   async function handleCopy() {
-    const text = `“${quote.quote}”\n\n${quote.verseText}\n— ${quote.verseReference}\n\n— Pastor Mrs. Oluwatosin Afolabi`;
+    const text = `"${quote.quote}"\n\n${quote.verseText}\n— ${quote.verseReference}\n\n— Pastor Mrs. Oluwatosin Afolabi`;
     try {
       await navigator.clipboard.writeText(text);
-      showToast("Copied to clipboard", "success");
+      showToast("Copied to clipboard ✦", "success");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -83,114 +77,128 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
     }
     saveQuote(quote);
     setSaved(true);
-    showToast("Saved to your collection", "success");
+    showToast("Saved to your collection ✦", "success");
     onSaved?.();
   }
 
-  const btnBase =
-    "type='button' flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-gold/60 hover:border-gold hover:bg-gold/10 text-gold font-lato text-sm font-medium transition-all";
-
   return (
-    <div className="w-full">
-      {/* ── PART A: exportable card ── */}
+    <div className="w-full animate-fade-up">
+      {/* ── Exportable card ── */}
       <div
         id="quote-card-export"
         ref={cardRef}
-        className="relative overflow-hidden bg-navy border-4 border-gold rounded-lg mx-auto flex flex-col items-center justify-center p-8 md:p-10"
-        style={{ maxWidth: 500, minHeight: 500 }}
+        className="relative overflow-hidden rounded-2xl mx-auto card-glow"
+        style={{
+          maxWidth: 540,
+          background: "linear-gradient(160deg,#0f2235 0%,#0D1B2A 55%,#091520 100%)",
+          border: "1.5px solid rgba(201,168,76,0.55)",
+        }}
       >
-        {/* Watermark */}
+        {/* Watermark image */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <div className="relative w-4/5 h-4/5 opacity-20" style={{ filter: "sepia(0.3)" }}>
-            <Image
-              src="/pastor.jpg"
-              alt=""
-              fill
-              className="object-contain"
-              aria-hidden
-            />
+          <div className="relative w-3/4 h-3/4 opacity-[0.06]">
+            <Image src="/pastor.jpg.png" alt="" fill className="object-contain" aria-hidden />
           </div>
         </div>
 
-        {/* Foreground */}
-        <div className="relative z-10 flex flex-col items-center text-center w-full gap-5">
-          {/* Ornamental flourish */}
-          <div className="flex items-center gap-2 w-full justify-center">
-            <span className="flex-1 h-px bg-gold/50 max-w-[60px]" />
-            <span className="text-gold text-xs">✦</span>
-            <span className="flex-1 h-px bg-gold/50 max-w-[60px]" />
+        {/* Radial inner glow */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(ellipse 80% 60% at 50% 30%, rgba(201,168,76,0.07) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* Corner brackets */}
+        <div className="absolute top-5 left-5 w-9 h-9 border-t-2 border-l-2 border-gold/50 rounded-tl-md pointer-events-none" />
+        <div className="absolute top-5 right-5 w-9 h-9 border-t-2 border-r-2 border-gold/50 rounded-tr-md pointer-events-none" />
+        <div className="absolute bottom-5 left-5 w-9 h-9 border-b-2 border-l-2 border-gold/50 rounded-bl-md pointer-events-none" />
+        <div className="absolute bottom-5 right-5 w-9 h-9 border-b-2 border-r-2 border-gold/50 rounded-br-md pointer-events-none" />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center text-center px-8 md:px-14 py-12 gap-7">
+          {/* Theme badge */}
+          <span
+            className="text-navy text-xs font-lato font-bold uppercase tracking-widest px-4 py-1 rounded-full"
+            style={{ background: "linear-gradient(135deg,#F5E6A3,#C9A84C)" }}
+          >
+            {quote.theme}
+          </span>
+
+          {/* Top flourish */}
+          <div className="flex items-center gap-3 w-full justify-center">
+            <span className="flex-1 h-px bg-gradient-to-r from-transparent to-gold/50 max-w-[60px]" />
+            <span className="text-gold text-lg">✦</span>
+            <span className="flex-1 h-px bg-gradient-to-l from-transparent to-gold/50 max-w-[60px]" />
           </div>
 
           {/* Quote */}
-          <p className="font-playfair italic text-xl md:text-2xl text-white leading-relaxed">
-            “{quote.quote}”
+          <p className="font-playfair italic text-xl md:text-2xl text-white/95 leading-relaxed">
+            &ldquo;{quote.quote}&rdquo;
           </p>
 
-          {/* Verse */}
-          <div className="flex flex-col items-center gap-1">
-            {quote.verseText && (
-              <p className="font-lato text-sm md:text-base text-light-gold/90 leading-relaxed max-w-md mx-auto italic">
-                {quote.verseText}
-              </p>
-            )}
-            <p className="font-lato font-bold text-gold text-sm uppercase tracking-wider mt-1">
-              {quote.verseReference}
+          {/* Verse text */}
+          {quote.verseText && (
+            <p className="font-lato text-sm text-light-gold/75 leading-relaxed max-w-sm italic">
+              {quote.verseText}
             </p>
+          )}
+
+          {/* Verse reference */}
+          <p
+            className="font-lato font-bold text-xs uppercase tracking-[0.2em]"
+            style={{
+              background: "linear-gradient(135deg,#F5E6A3,#C9A84C)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            {quote.verseReference}
+          </p>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 w-full justify-center">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-gold/30 max-w-[40px]" />
+            <span className="text-gold/50 text-xs">✦</span>
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-gold/30 max-w-[40px]" />
           </div>
 
-          {/* Divider + signature */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-[60px] h-px bg-gold" />
-            <p className="font-playfair italic text-gold text-base md:text-lg">
-              — Pastor Mrs. Oluwatosin Afolabi
-            </p>
-          </div>
+          {/* Signature */}
+          <p
+            className="font-playfair italic text-base md:text-lg"
+            style={{
+              background: "linear-gradient(135deg,#F5E6A3 0%,#C9A84C 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            — Pastor Mrs. Oluwatosin Afolabi
+          </p>
         </div>
       </div>
 
-      {/* ── PART B: action buttons ── */}
-      <div className="flex flex-row justify-center gap-3 mt-6 flex-wrap">
-        <button
-          type="button"
-          aria-label="Download quote as image"
-          onClick={handleDownload}
-          className={btnBase}
-        >
-          <Download size={16} />
-          Download
+      {/* ── Action buttons ── */}
+      <div className="flex flex-row justify-center gap-3 mt-7 flex-wrap">
+        <button type="button" onClick={handleDownload} className="btn-gold">
+          <Download size={15} /> Download
         </button>
-
-        <button
-          type="button"
-          aria-label="Share quote"
-          onClick={handleShare}
-          className={btnBase}
-        >
-          <Share2 size={16} />
-          Share
+        <button type="button" onClick={handleShare} className="btn-gold">
+          <Share2 size={15} /> Share
         </button>
-
-        <button
-          type="button"
-          aria-label="Copy quote text"
-          onClick={handleCopy}
-          className={btnBase}
-        >
-          {copied ? <Check size={16} /> : <Copy size={16} />}
+        <button type="button" onClick={handleCopy} className="btn-gold">
+          {copied ? <Check size={15} /> : <Copy size={15} />}
           {copied ? "Copied!" : "Copy"}
         </button>
-
         <button
           type="button"
-          aria-label={saved ? "Quote already saved" : "Save quote"}
           onClick={handleSave}
           disabled={saved}
-          className={[
-            btnBase,
-            saved ? "opacity-50 cursor-not-allowed" : "",
-          ].join(" ")}
+          className="btn-gold"
+          style={saved ? { borderColor: "rgba(201,168,76,0.3)", opacity: 0.5, cursor: "not-allowed", transform: "none" } : {}}
         >
-          {saved ? <Check size={16} /> : <Heart size={16} />}
+          {saved ? <Check size={15} /> : <Heart size={15} />}
           {saved ? "Saved" : "Save"}
         </button>
       </div>

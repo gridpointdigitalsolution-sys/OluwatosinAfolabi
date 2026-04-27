@@ -1,15 +1,20 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import type { ApiResponse } from "@/lib/types";
+import { getGroqKey } from "@/lib/env";
 
-const SYSTEM_PROMPT = `You are a wise, gentle Christian pastor in her 50s with deep faith and a warm, nurturing spirit. \
-When given a theme, respond with exactly two lines and nothing else:
+const SYSTEM_PROMPT = `You are a wise, gentle Christian pastor with deep faith and a warm, nurturing spirit.
+When given a theme, respond with EXACTLY this format and nothing else — two lines only:
 
-QUOTE: A single original spiritual quote (2-3 sentences, under 50 words) that reflects deep faith, warmth, and pastoral care. No quotation marks.
-VERSE: A single KJV Bible reference that thematically matches the quote, formatted strictly as "Book Chapter:Verse" (e.g. Philippians 4:13). No introduction or explanation.`;
+QUOTE: [Your original spiritual quote here, 1-2 sentences, no quotation marks]
+VERSE: [KJV Bible reference, e.g. John 3:16 or Philippians 4:13]
+
+Example response:
+QUOTE: God's grace is not earned but freely given, a river that never runs dry for those who seek Him.
+VERSE: Ephesians 2:8`;
 
 export async function POST(request: Request): Promise<NextResponse<ApiResponse>> {
   try {
@@ -32,40 +37,51 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse>>
       return NextResponse.json({ ok: false, error: "Invalid theme" }, { status: 400 });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    const apiKey = getGroqKey();
+    if (!apiKey) {
       return NextResponse.json({ ok: false, error: "Server misconfigured" }, { status: 500 });
     }
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const groq = new Groq({ apiKey });
 
-    const response = await client.messages.create({
-      model: "claude-opus-4-5-20251101",
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: `The theme is: ${theme}` }],
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `The theme is: ${theme}` },
+      ],
+      max_tokens: 300,
+      temperature: 0.8,
     });
 
-    const block = response.content[0];
-    if (block.type !== "text") {
-      return NextResponse.json(
-        { ok: false, error: "Failed to parse model response" },
-        { status: 502 }
-      );
-    }
+    const text = completion.choices[0]?.message?.content?.trim() ?? "";
 
-    const text = block.text;
+    let quote = "";
+    let verseReference = "";
+
     const quoteMatch = text.match(/^QUOTE:\s*(.+)/m);
     const verseMatch = text.match(/^VERSE:\s*(.+)/m);
 
-    if (!quoteMatch || !verseMatch) {
+    if (quoteMatch && verseMatch) {
+      quote = quoteMatch[1].trim();
+      verseReference = verseMatch[1].trim();
+    } else {
+      // Fallback: last line that looks like a Bible ref is the verse, rest is the quote
+      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      const bibleRefPattern = /^[1-3]?\s*[A-Za-z]+\s+\d+:\d+/;
+      const verseLineIdx = lines.findLastIndex((l) => bibleRefPattern.test(l));
+      if (verseLineIdx !== -1) {
+        verseReference = lines[verseLineIdx];
+        quote = lines.filter((_, i) => i !== verseLineIdx).join(" ").trim();
+      }
+    }
+
+    if (!quote || !verseReference) {
       return NextResponse.json(
         { ok: false, error: "Failed to parse model response" },
         { status: 502 }
       );
     }
-
-    const quote = quoteMatch[1].trim();
-    const verseReference = verseMatch[1].trim();
 
     let verseText = "";
     try {
@@ -79,7 +95,7 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse>>
         }
       }
     } catch {
-      // non-critical — proceed with empty verse text
+      // non-critical
     }
 
     return NextResponse.json({ ok: true, data: { theme, quote, verseText, verseReference } });
