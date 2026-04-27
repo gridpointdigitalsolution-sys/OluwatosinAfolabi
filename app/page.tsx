@@ -11,6 +11,17 @@ import { getSavedQuotes } from "@/lib/storage";
 import type { GeneratedQuote, ApiResponse } from "@/lib/types";
 import { Loader2, Sparkles } from "lucide-react";
 
+function scrollToQuote() {
+  // Only scroll on mobile (below md breakpoint = 768px)
+  if (typeof window !== "undefined" && window.innerWidth < 768) {
+    setTimeout(() => {
+      document
+        .getElementById("quote-display")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+}
+
 function PageInner() {
   const { showToast } = useToast();
 
@@ -26,6 +37,9 @@ function PageInner() {
       setSelectedWord(word);
       setIsLoading(true);
       setCurrentQuote(null);
+
+      // Scroll immediately on mobile so user sees the loading spinner
+      scrollToQuote();
 
       try {
         const res = await fetch("/api/generate-quote", {
@@ -79,9 +93,7 @@ function PageInner() {
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
           {/* ── Left: word list panel ── */}
-          <div
-            className="w-full md:w-64 lg:w-72 flex-shrink-0 glass-card rounded-2xl p-4 md:sticky md:top-6"
-          >
+          <div className="w-full md:w-64 lg:w-72 flex-shrink-0 glass-card rounded-2xl p-4 md:sticky md:top-6">
             <WordSelector
               words={THEME_WORDS}
               selectedWord={selectedWord}
@@ -91,8 +103,10 @@ function PageInner() {
           </div>
 
           {/* ── Right: quote display ── */}
-          <div className="flex-1 min-h-[460px] flex flex-col items-center justify-center">
-
+          <div
+            id="quote-display"
+            className="flex-1 min-h-[460px] flex flex-col items-center justify-center scroll-mt-4"
+          >
             {/* Loading */}
             {isLoading && (
               <div className="flex flex-col items-center gap-5 py-16">
