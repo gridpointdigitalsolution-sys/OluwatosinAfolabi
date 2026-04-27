@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import WordSelector from "@/components/WordSelector";
 import QuoteCard from "@/components/QuoteCard";
@@ -20,25 +20,32 @@ function PageInner() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [savedRefreshKey, setSavedRefreshKey] = useState(0);
   const [savedCount, setSavedCount] = useState(() => getSavedQuotes().length);
-  const shouldScrollRef = useRef(false);
 
-  // Scroll to quote panel on mobile after React re-renders the loading state
-  useEffect(() => {
-    if (!shouldScrollRef.current) return;
-    shouldScrollRef.current = false;
+  // Ref attached to the quote panel — used for reliable mobile scroll
+  const quotePanelRef = useRef<HTMLDivElement>(null);
+
+  function scrollToQuotePanel() {
+    // Only scroll on mobile screens (< 768px width)
     if (typeof window === "undefined" || window.innerWidth >= 768) return;
-    const el = document.getElementById("quote-display");
-    if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 12;
-    window.scrollTo({ top, behavior: "smooth" });
-  });
+    // Double rAF: first frame React paints, second frame browser lays out
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = quotePanelRef.current;
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({ top, behavior: "smooth" });
+      });
+    });
+  }
 
   const generateQuote = useCallback(
     async (word: string) => {
       setSelectedWord(word);
       setIsLoading(true);
       setCurrentQuote(null);
-      shouldScrollRef.current = true; // triggers scroll in the next useEffect pass
+
+      // Scroll to loading spinner on mobile right after state update paints
+      scrollToQuotePanel();
 
       try {
         const res = await fetch("/api/generate-quote", {
@@ -65,6 +72,7 @@ function PageInner() {
         setIsLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [showToast]
   );
 
@@ -83,15 +91,13 @@ function PageInner() {
 
       {/* ── Main split section ── */}
       <section className="max-w-6xl mx-auto px-4 md:px-8 py-12 mb-8">
-
-        {/* Step label */}
         <p className="font-lato text-xs uppercase tracking-[0.3em] text-gold/50 text-center mb-10">
           Tap a theme · Receive your word
         </p>
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
 
-          {/* ── Left: word list panel ── */}
+          {/* Left: word list */}
           <div className="w-full md:w-64 lg:w-72 flex-shrink-0 glass-card rounded-2xl p-4 md:sticky md:top-6">
             <WordSelector
               words={THEME_WORDS}
@@ -101,9 +107,9 @@ function PageInner() {
             />
           </div>
 
-          {/* ── Right: quote display ── */}
+          {/* Right: quote panel — ref used for mobile scroll target */}
           <div
-            id="quote-display"
+            ref={quotePanelRef}
             className="flex-1 min-h-[460px] flex flex-col items-center justify-center scroll-mt-4"
           >
             {/* Loading */}
@@ -124,7 +130,7 @@ function PageInner() {
 
             {/* Quote card */}
             {!isLoading && currentQuote && (
-              <div className="w-full animate-fade-up">
+              <div className="w-full">
                 <QuoteCard quote={currentQuote} onSaved={handleSaved} />
               </div>
             )}
@@ -135,8 +141,7 @@ function PageInner() {
                 <div
                   className="w-24 h-24 rounded-full flex items-center justify-center animate-float"
                   style={{
-                    background:
-                      "radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 70%)",
+                    background: "radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 70%)",
                     border: "1px solid rgba(201,168,76,0.18)",
                   }}
                 >
