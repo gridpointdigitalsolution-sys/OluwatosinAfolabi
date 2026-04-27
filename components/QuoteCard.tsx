@@ -23,22 +23,23 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-// Wrap text on canvas, return how many px of height was used
+// Wrap + draw centered text on canvas, return y after last line
 function drawWrapped(
   ctx: CanvasRenderingContext2D,
   text: string,
-  x: number,
+  cx: number,
   startY: number,
   maxW: number,
   lineHeight: number
 ): number {
+  ctx.textAlign = "center";  // always center — never inherit stale value
   const words = text.split(" ");
   let line = "";
   let y = startY;
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
     if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line, x, y);
+      ctx.fillText(line, cx, y);
       y += lineHeight;
       line = word;
     } else {
@@ -46,7 +47,7 @@ function drawWrapped(
     }
   }
   if (line) {
-    ctx.fillText(line, x, y);
+    ctx.fillText(line, cx, y);
     y += lineHeight;
   }
   return y;
@@ -104,7 +105,7 @@ async function buildDownloadCanvas(quote: GeneratedQuote): Promise<HTMLCanvasEle
     const imgX = (W - drawW) / 2;
     const imgY = (H - drawH) / 2;
     ctx.save();
-    ctx.globalAlpha = 0.07;
+    ctx.globalAlpha = 0.13;
     ctx.drawImage(pastorImg, imgX, imgY, drawW, drawH);
     ctx.restore();
   }
