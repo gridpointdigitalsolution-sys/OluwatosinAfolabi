@@ -46,12 +46,6 @@ function PageInner() {
 
         setCurrentQuote(data.data);
         showToast("Your quote is ready ✦", "success");
-
-        setTimeout(() => {
-          document
-            .getElementById("quote-display")
-            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 100);
       } catch {
         showToast("Network error — check your connection", "error");
       } finally {
@@ -68,68 +62,83 @@ function PageInner() {
 
   return (
     <main className="min-h-screen">
-      {/* Header with nav + photo */}
+      {/* Header */}
       <Header
         savedCount={savedCount}
         onOpenGallery={() => setGalleryOpen(true)}
       />
 
-      {/* Word selector */}
-      <section className="py-14">
-        <WordSelector
-          words={THEME_WORDS}
-          selectedWord={selectedWord}
-          onSelect={generateQuote}
-          disabled={isLoading}
-        />
-      </section>
+      {/* ── Main split section ── */}
+      <section className="max-w-6xl mx-auto px-4 md:px-8 py-12 mb-8">
 
-      {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent mb-14" />
+        {/* Step label */}
+        <p className="font-lato text-xs uppercase tracking-[0.3em] text-gold/50 text-center mb-10">
+          Tap a theme · Receive your word
+        </p>
 
-      {/* Quote display */}
-      <section
-        id="quote-display"
-        className="max-w-2xl mx-auto px-4 mb-20 min-h-[200px] flex flex-col items-center justify-center"
-      >
-        {isLoading && (
-          <div className="flex flex-col items-center py-20 gap-5">
-            <div className="relative">
-              <Loader2 size={56} className="text-gold animate-spin" />
-              <div
-                className="absolute inset-0 rounded-full animate-ping"
-                style={{ background: "rgba(201,168,76,0.15)" }}
-              />
-            </div>
-            <p className="font-playfair italic text-light-gold/80 text-lg">
-              Crafting your quote with prayer…
-            </p>
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+
+          {/* ── Left: word list panel ── */}
+          <div
+            className="w-full md:w-64 lg:w-72 flex-shrink-0 glass-card rounded-2xl p-4 md:sticky md:top-6"
+          >
+            <WordSelector
+              words={THEME_WORDS}
+              selectedWord={selectedWord}
+              onSelect={generateQuote}
+              disabled={isLoading}
+            />
           </div>
-        )}
 
-        {!isLoading && currentQuote && (
-          <QuoteCard quote={currentQuote} onSaved={handleSaved} />
-        )}
+          {/* ── Right: quote display ── */}
+          <div className="flex-1 min-h-[460px] flex flex-col items-center justify-center">
 
-        {!isLoading && !currentQuote && (
-          <div className="flex flex-col items-center gap-5 py-16 text-center">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center animate-float"
-              style={{
-                background: "radial-gradient(circle,rgba(201,168,76,0.15) 0%,transparent 70%)",
-                border: "1px solid rgba(201,168,76,0.2)",
-              }}
-            >
-              <Sparkles size={32} className="text-gold/60" />
-            </div>
-            <p className="font-playfair italic text-white/35 text-lg">
-              Your daily word awaits
-            </p>
-            <p className="font-lato text-sm text-white/25">
-              Choose a theme above to receive your quote
-            </p>
+            {/* Loading */}
+            {isLoading && (
+              <div className="flex flex-col items-center gap-5 py-16">
+                <div className="relative">
+                  <Loader2 size={56} className="text-gold animate-spin" />
+                  <div
+                    className="absolute inset-0 rounded-full animate-ping opacity-20"
+                    style={{ background: "rgba(201,168,76,0.4)" }}
+                  />
+                </div>
+                <p className="font-playfair italic text-light-gold/70 text-lg">
+                  Crafting your quote with prayer…
+                </p>
+              </div>
+            )}
+
+            {/* Quote card */}
+            {!isLoading && currentQuote && (
+              <div className="w-full animate-fade-up">
+                <QuoteCard quote={currentQuote} onSaved={handleSaved} />
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !currentQuote && (
+              <div className="flex flex-col items-center gap-5 py-16 text-center">
+                <div
+                  className="w-24 h-24 rounded-full flex items-center justify-center animate-float"
+                  style={{
+                    background:
+                      "radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 70%)",
+                    border: "1px solid rgba(201,168,76,0.18)",
+                  }}
+                >
+                  <Sparkles size={34} className="text-gold/50" />
+                </div>
+                <p className="font-playfair italic text-white/30 text-xl">
+                  Your daily word awaits
+                </p>
+                <p className="font-lato text-sm text-white/20">
+                  Choose any theme from the list to receive your quote
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       <SavedQuotesGallery
