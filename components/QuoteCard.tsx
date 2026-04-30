@@ -13,14 +13,33 @@ interface QuoteCardProps {
 }
 
 // Load an image element from a URL (returns null on failure)
+// No crossOrigin — same-origin image, crossOrigin attr causes load failure on
+// servers that don't send CORS headers (Hostinger static files)
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new window.Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // fail gracefully
+    img.onerror = () => resolve(null);
     img.src = src;
   });
+}
+
+// Cross-browser rounded rectangle — ctx.roundRect() missing in older browsers
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y,     x + w, y + r,     r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x,     y + h, x,     y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x,     y,     x + r, y,         r);
+  ctx.closePath();
 }
 
 // Wrap + draw centered text on canvas, return y after last line
@@ -163,8 +182,7 @@ async function buildDownloadCanvas(quote: GeneratedQuote): Promise<HTMLCanvasEle
   const pillGrad = ctx.createLinearGradient(badgeX, 0, badgeX + badgeW, 0);
   pillGrad.addColorStop(0, "#F5E6A3"); pillGrad.addColorStop(1, "#C9A84C");
   ctx.fillStyle = pillGrad;
-  ctx.beginPath();
-  ctx.roundRect(badgeX, y, badgeW, badgeH2, badgeR);
+  roundRect(ctx, badgeX, y, badgeW, badgeH2, badgeR);
   ctx.fill();
   ctx.fillStyle = "#0D1B2A";
   ctx.font = "bold 22px Arial,sans-serif";
@@ -295,6 +313,7 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
               src="/pastor.jpg.png"
               alt=""
               fill
+              sizes="80vw"
               className="object-contain"
               aria-hidden
             />
