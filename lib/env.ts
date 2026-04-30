@@ -1,25 +1,25 @@
-import fs from "fs";
-import path from "path";
+export function getGroqKey(): string {
+  // 1. Standard process.env — works on Hostinger and all production hosts
+  const fromEnv = (process.env.GROQ_API_KEY ?? "").trim();
+  if (fromEnv) return fromEnv;
 
-function readFromEnvFile(key: string): string {
+  // 2. Fallback: read .env.local directly (local dev only — Turbopack bug)
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require("path");
     const envPath = path.join(process.cwd(), ".env.local");
     const content = fs.readFileSync(envPath, "utf-8");
     for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith(`${key}=`)) {
-        const val = trimmed.slice(key.length + 1).trim();
+      const t = line.trim();
+      if (t.startsWith("GROQ_API_KEY=")) {
+        const val = t.slice("GROQ_API_KEY=".length).trim();
         if (val) return val;
       }
     }
   } catch {
-    // .env.local does not exist in production — that is expected
+    // .env.local doesn't exist in production — expected
   }
   return "";
-}
-
-export function getGroqKey(): string {
-  // process.env works in production (Hostinger env vars dashboard)
-  // readFromEnvFile is the local dev fallback for Next.js Turbopack worker isolation
-  return (process.env.GROQ_API_KEY ?? "").trim() || readFromEnvFile("GROQ_API_KEY");
 }
