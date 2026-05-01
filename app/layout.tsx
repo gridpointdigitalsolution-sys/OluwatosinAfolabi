@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   description:
     "Faith-filled daily quotes and KJV Bible verses for inspiration, hope, and spiritual renewal — by Pastor Mrs. Oluwatosin Afolabi.",
   keywords: ["christian quotes", "bible verses", "daily devotional", "pastor quotes", "faith", "KJV"],
+  icons: {
+    icon: "/pastor.jpg.png",
+    apple: "/pastor.jpg.png",
+    shortcut: "/pastor.jpg.png",
+  },
   openGraph: {
     title: "Daily Quotes by Pastor Mrs. Oluwatosin Afolabi",
     description:
