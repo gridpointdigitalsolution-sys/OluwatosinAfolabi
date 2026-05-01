@@ -99,7 +99,8 @@ async function buildDownloadCanvas(quote: GeneratedQuote): Promise<HTMLCanvasEle
   const VERSE_FONT  = "italic 28px Georgia,serif";
   const quoteH  = measureH(`"${quote.quote}"`, QUOTE_FONT, 58) + 16;
   const verseH  = quote.verseText ? measureH(quote.verseText, VERSE_FONT, 44) + 16 : 0;
-  const H = PAD + 48 + 40 + 36 + 20 + quoteH + verseH + 44 + 36 + 60 + PAD + 20;
+  // Extra space for the site URL at the bottom
+  const H = PAD + 48 + 40 + 36 + 20 + quoteH + verseH + 44 + 36 + 60 + 40 + PAD + 20;
 
   // ── Real canvas ──
   const canvas = document.createElement("canvas");
@@ -227,8 +228,29 @@ async function buildDownloadCanvas(quote: GeneratedQuote): Promise<HTMLCanvasEle
   ctx.font = "italic 32px Georgia,serif";
   ctx.textAlign = "center";
   ctx.fillText(`— Pastor Mrs. Oluwatosin Afolabi`, cx, y);
+  y += 50;
+
+  // Site URL watermark at bottom
+  ctx.fillStyle = "rgba(201,168,76,0.35)";
+  ctx.font = "600 18px Arial,sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("pastormrsoluwatosinafolabi.com", cx, y);
 
   return canvas;
+}
+
+// Convert a canvas to a JPEG File object
+function canvasToFile(canvas: HTMLCanvasElement, name: string): Promise<File | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) { resolve(null); return; }
+        resolve(new File([blob], name, { type: "image/jpeg" }));
+      },
+      "image/jpeg",
+      0.95
+    );
+  });
 }
 
 export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
@@ -236,6 +258,7 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
   const [saved, setSaved]         = useState(() => isQuoteSaved(quote.quote, quote.verseReference));
   const [copied, setCopied]       = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing]     = useState(false);
 
   async function handleDownload() {
     setDownloading(true);
@@ -266,13 +289,49 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
   }
 
   async function handleShare() {
-    const text = `"${quote.quote}"\n\n${quote.verseReference}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "Pastor's Daily Quote", text, url: window.location.href }); }
-      catch { /* cancelled */ }
-    } else {
-      try { await navigator.clipboard.writeText(text); showToast("Copied — paste to share", "info"); }
-      catch { showToast("Unable to copy", "error"); }
+    setSharing(true);
+    try {
+      const siteUrl = window.location.origin;
+      const caption = `"${quote.quote}" — ${quote.verseReference}\n\nGet your daily quote: ${siteUrl}`;
+
+      // Build the card image
+      const canvas = await buildDownloadCanvas(quote);
+      const file = await canvasToFile(canvas, `pastor-quote-${quote.theme}.jpg`);
+
+      if (file) {
+        const shareData: ShareData = {
+          title: "Pastor's Daily Quote",
+          text: caption,
+          files: [file],
+        };
+
+        // Try sharing with image (mobile — WhatsApp, Instagram, Twitter etc.)
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return;
+        }
+      }
+
+      // Fallback: share text + link only (if image sharing not supported)
+      if (navigator.share) {
+        await navigator.share({
+          title: "Pastor's Daily Quote",
+          text: caption,
+          url: siteUrl,
+        });
+        return;
+      }
+
+      // Last resort: copy text + link to clipboard
+      await navigator.clipboard.writeText(caption);
+      showToast("Copied quote + link — paste to share ✦", "info");
+    } catch (err) {
+      // AbortError = user cancelled the share sheet — that's fine
+      if (err instanceof Error && err.name !== "AbortError") {
+        showToast("Share failed — try downloading instead", "error");
+      }
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -405,8 +464,8 @@ export default function QuoteCard({ quote, onSaved }: QuoteCardProps) {
           <Download size={15} />
           {downloading ? "Saving…" : "Download"}
         </button>
-        <button type="button" onClick={handleShare} className="btn-gold">
-          <Share2 size={15} /> Share
+        <button type="button" onClick={handleShare} disabled={sharing} className="btn-gold">
+          <Share2 size={15} /> {sharing ? "Sharing…" : "Share"}
         </button>
         <button type="button" onClick={handleCopy} className="btn-gold">
           {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Copied!" : "Copy"}
